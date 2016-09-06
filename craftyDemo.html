@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<meta charset="utf-8">
+		<title>Show Sprite</title>
+		<meta name="generator" content="Bootply" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<link href="css/bootstrap.min.css" rel="stylesheet">
+		<link rel="stylesheet" href="css/shapes.css">
+		<!--[if lt IE 9]>
+			<script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+		<![endif]-->
+		<link href="css/styles.css" rel="stylesheet">
+	</head>
+	<body>
+
+<!--main-->
+<div class="container">
+    
+        <div class="row">
+                <div class="col-md-9">
+                    <div id="game"></div>
+                </div> 
+                <div class="col-md-3">
+                        <canvas id="myCanvas" height="10" width="10"></canvas>
+                        <label>(row, col): </label>
+                        <input type="text" onchange="window.read()" class="form-control" id="dim" value="2,8"> 
+                </div>
+        </div>
+    
+</div>
+
+	<!-- script references -->
+		<script src="js/jquery-2.1.4.min.js"></script>
+		<script src="js/bootstrap.min.js"></script>
+
+    <!-- Load the Paper.js library -->
+    <script type="text/javascript" src="js/paper.js"></script>
+
+<!-- Define inlined PaperScript associate it with myCanvas -->
+    <script type="text/paperscript" src="js/game/craftyDemo.js" canvas="myCanvas"></script>
+    <script type="text/javascript" src="js/game/crafty-min.js"></script>    
+        
+</body>
+</html>
