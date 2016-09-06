@@ -1,60 +1,49 @@
 var gravity = 0.25;
 var gamePlay = 1;
 var balls = []
-var flag = 0
-
 var score = 0;
 
+var player = new Player(2, 8, 'assets/sprites/walking.png');
 //var raster = new Raster({source: 'assets/background1.jpg', position: view.center, width: 720, height: 540, scaling: 1.4});
-
-mario = new Raster({ source: 'assets/mario2.png', position: [view.size.width/2, view.size.height-36], scaling:0.75 });
 var text = new PointText({ point: [view.size.width/1.25, 50], justification: 'center', fontSize: 30, strokeColor:'white'});
-
-var marioDir = 1;
 var wavyLine;
 
-/////////////////////////////////   Mouse Interactions   /////////////////////////////
-
-function onMouseMove(event){
-    //mario.position = event.point
-}
+advanceWavy.mod = 1
 
 /////////////////////////////////   Keyboard Interactions   /////////////////////////////
 
 function readKeys(){    
     if(Key.isDown('left'))
     {
-        mario.position += [5 * marioDir, 0];
-        mario.matrix = new Matrix(marioDir, 0, 0, 1, mario.position.x, mario.position.y)
-        
-        marioDir = -1
+        player.advance(-1); 
+        dir = -1
     }
     if(Key.isDown('right'))
     {
-        mario.position += [5 * marioDir, 0];
-        mario.matrix = new Matrix(marioDir, 0, 0, 1, mario.position.x, mario.position.y)
-        
-        marioDir = 1
+        player.advance(1); 
+        dir = 1
     }
     if(Key.isDown('space'))
     {
         if(!wavyLine)
         {
-            wavyLine = new Raster({ source: 'assets/wavy_line2.png', position: [mario.position.x + marioDir * mario.getInternalBounds().width/2, view.size.height + 110], scaling:0.35 });
-            mod = 1
+            Crafty.audio.play("shoot", 1, 0.5)
+            wavyLine = new Raster({ source: 'assets/wavy_line2.png', position: [player.path.position.x + dir * player.path.getInternalBounds().width/2, view.size.height + 110], scaling:0.35 });
+            advanceWavy.mod = 1            
         }
-    }   
+    }
+    
 }
 
-    ///////////////////////////////    Motion  of Balls   ///////////////////////////////
-var canvas = document.getElementById('myCanvas');
+///////////////////////////////    Motion  of Balls   ///////////////////////////////
+
 createRandomBalls(1);
 
 function Ball(r, p, v ){
 	this.radius = r;
  	this.collisionPath = new Path.Circle({center: p, radius: r, strokeWidth: 1});
 	this.vector = v; //new Point(0.8,0.5)
-    this.path = new Raster({ source: 'assets/football.png', position: p,  
+    this.path = new Raster({ source: 'assets/beachball2.png', position: p,  
                             scaling: this.radius/128
                            });
     
@@ -67,9 +56,9 @@ function Ball(r, p, v ){
         var pos = this.path.position;
 
         // Check if it is in the arena
-        if(pos.x + radius > canvas.width || pos.x - radius < 0)
+        if(pos.x + radius > view.size.width || pos.x - radius < 0)
             this.vector *= [-1, 1];
-        if(pos.y + radius > canvas.height)
+        if(pos.y + radius > view.size.height)
         {
             pos.y = view.size.height - this.radius;  
             this.vector *= [1, -1];   
@@ -111,6 +100,65 @@ function Ball(r, p, v ){
         this.path.remove();
     }
 };
+
+function Player(row, col, str){
+    
+    this.loaded = 0;  
+    this.path = [];
+    
+    var temp = this;
+    
+    this.loadAsset = function(row, col, str){
+        
+        item = new Raster({ source: str, visible: false});
+        var fr = []
+
+        item.on('load', function() {
+
+            w = item.getInternalBounds().width
+            h = item.getInternalBounds().height
+
+            xlen = w/col;
+            ylen = h/row;
+
+            for (var j = 0; j < row; j++) {
+                for(var i = 0; i < col; i++) {
+                    r = new Rectangle(xlen*i, ylen*j, xlen, ylen);
+                    dd = item.getSubRaster(r);
+                    dd.visible = false;
+                    dd.position = new Point(100, 490);
+                    fr.push(dd)
+                }
+                fr[0].visible = true;
+            }
+            temp.loaded = 1;
+            console.log(fr[0])
+            temp.path = fr[0];
+        });
+        return fr;
+    }; 
+	this.frames = this.loadAsset(row, col, str); 
+    this.setPos = function(pos){
+        for(var i=0; i<this.frames.length; i++)
+            this.frames[i].position = pos;
+    };
+
+    var i=0
+    this.advance = function(dir){
+        if(i == this.frames.length)  
+            i = 0
+
+        if(i == 0)
+            this.frames[this.frames.length-1].visible = false
+        else
+           this.frames[i-1].visible = false;
+
+        this.frames[i].visible = true; 
+        this.setPos(this.frames[i].position + [6*dir, 0])
+        this.frames[i].matrix = new Matrix(dir, 0, 0, 1, this.frames[i].position.x, this.frames[i].position.y)
+        i++   
+    };    
+};
     
 function createRandomBalls(count){
     for (var i = 0; i < count; i++) {
@@ -129,7 +177,7 @@ function drawBall() {
 			if (i != j)
                 balls[i].react(balls[j]);
 	}
-}
+} 
 
 function divideBalls(ball){
     
@@ -152,12 +200,15 @@ function divideBalls(ball){
 
 function checkCollision(){
 	
-    if(balls.length == 0)
+    if(balls.length == 0){
         text.content = "Congrats, You win!"
+        Crafty.audio.play("victory", 1, 0.75)
+    }
     
-    for (var i = 0; i < balls.length; i++)
+    for (var i = 0; i < balls.length; i++) // player
 	{
-        if(mario.intersects(balls[i].collisionPath))
+        if(player.loaded)
+        if(player.path.intersects(balls[i].collisionPath))
         {
             text.content = "Game Over!"
             text.bringToFront()
@@ -165,11 +216,13 @@ function checkCollision(){
         }
     }
     
-    for (var i = 0; i < balls.length; i++)
+    for (var i = 0; i < balls.length; i++) // wavyline
 	{
         if(wavyLine)
         if(wavyLine.intersects(balls[i].collisionPath))
         {
+            Crafty.audio.play("explosion", 1, 0.25)   
+
             wavyLine.remove()
             wavyLine = 0;
             
@@ -181,58 +234,24 @@ function checkCollision(){
             document.getElementById("score").innerHTML = "Score: "+ score;
         }
     }
-    
 }
 
-var mod;
 function advanceWavy(){
     if(wavyLine)
     {
-        if(mod == 1)
+        if(advanceWavy.mod == 1)
         {
             wavyLine.position.y -= 10;
             if(wavyLine.position.y < 385)
-                mod = 0
+                advanceWavy.mod = 0
         }
-        if(mod == 0)
+        if(advanceWavy.mod == 0)
             wavyLine.position.y += 7;
         if( wavyLine.position.y > view.size.height + wavyLine.getInternalBounds().height * 0.25)
             wavyLine = 0
     }
     
 }
-
-
-function loadAsset(row, col, str, speed){
-    
-    item = new Raster({ source: str, visible: false});
-    item.bringToFront()
-    var frames = []
-    
-    item.on('load', function() {
-    
-        w = item.getInternalBounds().width
-        h = item.getInternalBounds().height
-
-        xlen = w/col;
-        ylen = h/row;
-        
-        for (var j = 0; j < row; j++) {
-            for(var i = 0; i < col; i++) {
-                r = new Rectangle(xlen*i, ylen*j, xlen, ylen);
-                dd = item.getSubRaster(r);
-                dd.visible = false;
-                dd.position = new Point(100, view.size.height-55);
-                dd.bringToFront()
-                frames.push(dd)
-            }
-        }
-        flag = 1
-    });
-
-    return frames;
-}
-
 
 function draw(){
     
@@ -247,7 +266,17 @@ function draw(){
 }
 
 setInterval(draw, 33);
-
 function onFrame(event){}
 
 
+//// load sounds
+var assets = {
+    'audio': 
+        {'beep': 'assets/sounds/beep-04.mp3',
+        'shoot': 'assets/sounds/laser_shoot.wav',
+        'jump': 'assets/sounds/jump.wav',
+        'pulse': 'assets/sounds/pulse.mp3',
+        'explosion': 'assets/sounds/explosion.wav',
+        'victory': 'assets/sounds/victory.mp3'}
+}
+Crafty.load(assets)
